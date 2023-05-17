@@ -3,7 +3,7 @@ use std::time::Instant;
 use std::ffi::OsString;
 use std::io::{self, Cursor};
 use pacosso::{Stream, Opts};
-use jsosso::{parse};
+use jsosso::parsing::{parse};
 
 const US: f64 = 1_000_000.0;
 

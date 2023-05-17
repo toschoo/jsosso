@@ -1,4 +1,5 @@
 use super::*;
+use super::parsing::*;
 use std::io::Cursor;
 use std::fs::File;
 use pacosso::Opts;
@@ -52,7 +53,7 @@ fn test_escape() {
 
 #[test]
 fn test_unicode() {
-    let v: Vec<u8> = r#""\uD834\uDD1E \u006d\u0075\u0073\udd1eic""#.to_string().bytes().collect(); // , 0xDD1E, 0x0069, 0x0063, 0xD834].
+    let v: Vec<u8> = r#""\uD834\uDD1E \u006d\u0075\u0073\udd1eic""#.to_string().bytes().collect();
     let mut input = Cursor::new(v);
     let mut s = Stream::new(Opts::default()
                .set_buf_size(8)
