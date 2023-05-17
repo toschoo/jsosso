@@ -1,0 +1,26 @@
+{
+	"id":"A000040",
+	"seqence":[2,3,5,7,11,13,17,19,23, 29, 31, 37, 41, 43, 47, 53, 59,
+	           61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113,
+	           127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181,
+	           191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251,
+	           257, 263, 269, 271
+	],
+	"commens":[
+		"A number n is prime if it is greater than 1 and has no positive divisors except 1 and n.",
+		"A natural number is prime if and only if it has exactly two (positive) divisors.",
+		"A prime has exactly one proper positive divisor, 1.",
+		"The sum of an odd number > 1 (2i+1, i >= 1) of consecutive positive odd numbers centered on the j-th odd number >= 2i+1 (2j+1, j >= i) being (2i+1)*(2j+1) has 2 or more odd prime factors (odd semiprime iff 2i+1 and 2j+1 are primes). - Daniel Forgues, Jul 15 2009",
+		"The paper by Kaoru Motose starts as follows: \"Let q be a prime divisor of a Mersenne number 2^p-1 where p is prime. Then p is the order of 2 (mod q). Thus p is a divisor of q - 1 and q > p. This shows that there exist infinitely many prime numbers.\" - Pieter Moree, Oct 14 2004",
+		"1 is not a prime, for if the primes included 1, then the factorization of a natural number n into a product of primes would not be unique, since n = n*1.",
+		"1 is the empty product (has 0 prime factors), whereas a prime has 1 prime factor (itself). - Daniel Forgues, Jul 23 2009",
+		"Prime(n) and pi(n) are inverse functions: A000720(a(n)) = n and a(n) is the least number m such that a(A000720(m)) = a(n). a(A000720(n)) = n if (and only if) n is prime.",
+		"Elementary primality test: If no prime <= sqrt(m) divides m, then m is prime (since a prime is its own exclusive multiple, apart from 1). - Lekraj Beedassy, Mar 31 2005",
+		"Second sequence ever computed by electronic computer, on EDSAC, May 09 1949 (see Renwick link). - Russ Cox, Apr 20 2006",
+		"Every prime p > 3 is a linear combination of previous primes prime(n) with nonzero coefficients c(n) and |c(n)| < prime(n). - Amarnath Murthy, Franklin T. Adams-Watters and Joshua Zucker, May 17 2006; clarified by Chayim Lowen, Jul 17 2015",
+		"The Greek transliteration of 'Prime Number' is 'Proton Arithmon'. - Daniel Forgues, May 08 2009"
+	],
+	"keyword":["core","nonn","nice","easy","changed"],
+	"author":"N. J. A. Sloane, Apr 30 1991",
+	"status":"approved"
+}

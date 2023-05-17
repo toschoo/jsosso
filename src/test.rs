@@ -676,6 +676,40 @@ fn test_pass_from_file_pattern1() {
 
     assert!(match parse(&mut s) {
         Ok(_) => true,
-        Err(e) => panic!("unexpected error: {:?} at {}", e, s.position()),
+        Err(e) => panic!("unexpected error: {:?}", e),
+    });
+}
+
+#[test]
+fn test_pass_from_file_pattern2() {
+    let mut input = match File::open("rsc/test/oeis.json") {
+        Ok(f) => f,
+        Err(e) => panic!("can't read file: {:?}", e),
+    };
+    let mut s = Stream::new(Opts::default()
+               .set_buf_size(8)
+               .set_buf_num(3),
+               &mut input);
+
+    assert!(match parse(&mut s) {
+        Ok(_) => true,
+        Err(e) => panic!("unexpected error: {:?}", e),
+    });
+}
+
+#[test]
+fn test_pass_from_file_pattern3() {
+    let mut input = match File::open("rsc/test/oeis2.json") {
+        Ok(f) => f,
+        Err(e) => panic!("can't read file: {:?}", e),
+    };
+    let mut s = Stream::new(Opts::default()
+               .set_buf_size(8)
+               .set_buf_num(3),
+               &mut input);
+
+    assert!(match parse(&mut s) {
+        Ok(_) => true,
+        Err(e) => panic!("unexpected error: {:?}", e),
     });
 }
