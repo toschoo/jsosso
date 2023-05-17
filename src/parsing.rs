@@ -113,7 +113,7 @@ fn jnumber<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
     match s.byte(b'.') {
         Ok(()) => jfrac(s, &mut v)?,
         Err(e) => {
-            if !e.is_expected_token() {
+            if !e.is_expected_token() && !e.is_eof() {
                 return Err(e);
             }
         },
@@ -122,7 +122,7 @@ fn jnumber<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
     match s.one_of_bytes(&[b'e', b'E']) {
         Ok(()) => exp = true,
         Err(e) => {
-            if !e.is_expected_token() {
+            if !e.is_expected_token() && !e.is_eof() {
                 return Err(e);
             }
         },
@@ -224,8 +224,8 @@ fn jstring<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
 
 fn plain_string<R: Read>(s: &mut Stream<R>) -> ParseResult<String> {
 
-    let mut v: Vec<u8> = Vec::new();
     s.byte('"' as u8)?;
+    let mut v: Vec<u8> = Vec::new();
     loop {
        let c = s.any_byte()?;
        if c == b'\\' {

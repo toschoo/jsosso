@@ -1,7 +1,9 @@
 use super::*;
 use super::parsing::*;
+use super::arbitrary::*;
 use std::io::Cursor;
 use std::fs::File;
+use std::str;
 use pacosso::Opts;
 
 fn approx_eq(a: f64, b: f64) -> bool {
@@ -181,6 +183,23 @@ fn test_jnumber() {
                              approx_eq(h, 3.1415925) => true,
         _ => panic!("unexpected value {:?}", o),
     });
+}
+
+#[test]
+fn test_one_number() {
+    let v: Vec<u8> = r#"3.1415926"#
+        .to_string().bytes().collect();
+    let mut input = Cursor::new(v);
+    let mut s = Stream::new(Opts::default()
+               .set_buf_size(8)
+               .set_buf_num(3),
+               &mut input);
+
+    match parse(&mut s) {
+        Ok(Json::Number(v)) if approx_eq(v, 3.1415926) => v,
+        Ok(v) => panic!("unexpected value: {:?}", v),
+        Err(e) => panic!("unexpected error: {:?}", e),
+    };
 }
 
 #[test]
@@ -713,4 +732,34 @@ fn test_pass_from_file_pattern3() {
         Ok(_) => true,
         Err(e) => panic!("unexpected error: {:?}", e),
     });
+}
+
+#[test]
+fn test_pass_round_trip() {
+
+    for _ in 0 .. 10 {
+        let original = make_arbitrary();
+        let mut v = Vec::new();
+
+        assert!(match original.serialize(&mut v) {
+            Ok(_)  => true,
+            Err(e) => panic!("unexpected error serializing: {:?}", e),
+        });
+ 
+        let t = match str::from_utf8(&v) {
+           Ok(t) => t.to_string(),
+           Err(e) => panic!("cannot stringify buffer: {:?}", e),
+        };
+
+        let mut input = Cursor::new(v);
+        let mut s = Stream::new(Opts::default()
+                   .set_buf_size(1024)
+                   .set_buf_num(5),
+                   &mut input);
+
+        let mycopy = match parse(&mut s) {
+            Ok(j) => j,
+            Err(e) => panic!("unexpected error: {:?}", e),
+        };
+    }
 }

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use pacosso::{Stream, ParseResult, ParseError};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Json {
     Null,
     Boolean(bool),
@@ -13,6 +13,7 @@ pub enum Json {
 
 pub mod serializing;
 pub mod parsing;
+pub mod arbitrary;
 
 #[cfg(test)]
 mod test;
