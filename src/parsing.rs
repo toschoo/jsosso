@@ -30,34 +30,6 @@ fn fail<R: Read>(s: &mut Stream<R>, msg: String) -> ParseResult<Json> {
     s.fail(&msg, Json::Null)
 }
 
-fn jarray<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
-
-    s.byte(b'[')?;
-    s.skip_whitespace()?;
-
-    let mut v = Vec::new();
-
-    let c = s.peek_byte()?;
-    if c == b']' {
-        return Ok(Json::Array(v));
-    }
-
-    loop {
-        s.skip_whitespace()?;
-        let e = jvalue(s)?;
-        v.push(e);   
-        s.skip_whitespace()?;
-        match s.byte(b',') {
-          Ok(()) => continue,
-          _ => break,
-        }
-    }
-
-    s.byte(b']')?;
-
-    Ok(Json::Array(v))
-}
-
 fn jnil<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
     s.string("null")?;
     Ok(Json::Null)
@@ -166,6 +138,37 @@ fn jexp<R: Read>(s: &mut Stream<R>, v: &mut Vec<u8>) -> ParseResult<()> {
          v.push(d);
      }
      Ok(())
+}
+
+fn jarray<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
+
+    s.byte(b'[')?;
+    s.skip_whitespace()?;
+
+    let mut v = Vec::new();
+
+    // empty array
+    match s.byte(b']') {
+        Ok(()) =>  return Ok(Json::Array(v)),
+        Err(e) =>  if !e.is_expected_token() {
+                       return Err(e);
+        },
+    }
+
+    loop {
+        s.skip_whitespace()?;
+        let e = jvalue(s)?;
+        v.push(e);   
+        s.skip_whitespace()?;
+        match s.byte(b',') {
+          Ok(()) => continue,
+          _ => break,
+        }
+    }
+
+    s.byte(b']')?;
+
+    Ok(Json::Array(v))
 }
 
 fn jobject<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {

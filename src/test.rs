@@ -759,7 +759,7 @@ fn test_pass_round_trip() {
 
         let mycopy = match parse(&mut s) {
             Ok(j) => j,
-            Err(e) => panic!("unexpected error: {:?}", e),
+            Err(e) => panic!("unexpected error: {:?} at {}", e, s.position()),
         };
     }
 }

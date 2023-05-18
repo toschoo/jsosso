@@ -8,7 +8,10 @@ use jsosso::parsing::{parse};
 const US: f64 = 1_000_000.0;
 
 fn main() {
-    let _ = parse_and_serialize("rsc/test/oeis.json".into());
+    // arbitrary
+    let _ = parse_and_serialize("rsc/test/arbitrary.json".into());
+
+    // oeis
     let mut d = 0;
     for _ in 0 .. 1000 {
         d += run_with_file("rsc/test/oeis.json".into()) as i64;
@@ -17,6 +20,7 @@ fn main() {
     let k = 2363.0 / d as f64;
     println!("Duration oeis : {:03}us = {:03}MB/s", d, k as i64);
 
+    // pass1
     d = 0;
     for _ in 0 .. 1000 {
         d += run_with_file("rsc/test/pass1.json".into()) as i64;
@@ -25,6 +29,7 @@ fn main() {
     let k = 1442.0 / d as f64;
     println!("Duration pass1: {:03}us = {:03}MB/s", d, k as i64);
 
+    // strings
     d = 0;
     let mut v: Vec<u8> = r#"
         "The paper by Kaoru Motose starts as follows:
@@ -39,6 +44,7 @@ fn main() {
     let k = v.len() as f64 / d as f64;
     println!("Duration text : {:03}us = {:03}MB/s", d, k as i64);
 
+    // numbers
     d = 0;
     let mut v: Vec<u8> = r#"
         [2,3,5,7,11,13,17,19,23, 29, 31, 37, 41, 43, 47, 53, 59,
@@ -69,7 +75,7 @@ fn parse_and_serialize(f: OsString) -> io::Result<usize> {
 
     match parse(&mut s) {
         Ok(j) => return j.serialize(&mut io::stdout()),
-        Err(e) => panic!("unexpected error: {:?}", e),
+        Err(e) => panic!("unexpected error: {:?} at {}", e, s.position()),
     }
 }
 
