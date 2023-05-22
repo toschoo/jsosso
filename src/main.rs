@@ -63,19 +63,20 @@ fn main() {
 }
 
 fn parse_and_serialize(f: OsString) -> io::Result<usize> {
+    let n = f.clone();
     let mut input = match File::open(f) {
         Ok(f) => f,
         Err(e) => panic!("can't read file: {:?}", e),
     };
 
     let mut s = Stream::new(Opts::default()
-                   .set_buf_size(8)
+                   .set_buf_size(1024) // for choice not to fail
                    .set_buf_num(3),
                    &mut input);
 
     match parse(&mut s) {
         Ok(j) => return j.serialize(&mut io::stdout()),
-        Err(e) => panic!("unexpected error: {:?} at {}", e, s.position()),
+        Err(e) => panic!("unexpected error: {:?} in {:?} at {}", e, n, s.position()),
     }
 }
 
@@ -87,7 +88,7 @@ fn run_with_file(f: OsString) -> f64 {
 
     let t = Instant::now();
     let mut s = Stream::new(Opts::default()
-                   .set_buf_size(8)
+                   .set_buf_size(1024)
                    .set_buf_num(3),
                    &mut input);
 

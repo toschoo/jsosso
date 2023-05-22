@@ -751,7 +751,7 @@ fn test_pass_round_trip() {
            Err(e) => panic!("cannot stringify buffer: {:?}", e),
         };
 
-        let mut input = Cursor::new(v);
+        let mut input = Cursor::new(t);
         let mut s = Stream::new(Opts::default()
                    .set_buf_size(1024)
                    .set_buf_num(5),
@@ -761,5 +761,7 @@ fn test_pass_round_trip() {
             Ok(j) => j,
             Err(e) => panic!("unexpected error: {:?} at {}", e, s.position()),
         };
+
+        assert_eq!(original, mycopy);
     }
 }
