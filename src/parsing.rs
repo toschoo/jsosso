@@ -37,7 +37,9 @@ pub fn parse<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
 }
 
 fn jvalue<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
-    /*
+    /* This looks nice, but it is less efficient and would force us
+       to use a buffer that basically is big enough to contain the whole jvalue.
+ 
     let v = [jstring, jobject, jarray, jnil, jboolean, jnumber]; 
     s.choice(&v)
     */
@@ -54,6 +56,7 @@ fn jvalue<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
     }
 }
 
+// A simple error generator for ParseResult<Json>
 fn fail<R: Read>(s: &mut Stream<R>, msg: String) -> ParseResult<Json> {
     s.fail(&msg, Json::Null)
 }
@@ -77,6 +80,7 @@ fn jboolean<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
     fail(s, "boolean value expected".to_string())
 }
 
+// jnumber is extremely inefficient. Definitely needs review.
 fn jnumber<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
     let mut zero = false;
     let mut exp  = false;
@@ -387,4 +391,3 @@ fn escape<R: Read>(s: &mut Stream<R>, v: &mut Vec<u8>) -> ParseResult<()> {
        }
        Ok(())
 }
-

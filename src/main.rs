@@ -8,7 +8,7 @@ use jsosso::parsing::{parse};
 const US: f64 = 1_000_000.0;
 
 fn main() {
-    // arbitrary
+    // arbitrary (comment this to avoid polluting stdout)
     let _ = parse_and_serialize("rsc/test/arbitrary.json".into());
 
     // oeis
