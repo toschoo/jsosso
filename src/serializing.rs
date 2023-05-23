@@ -11,6 +11,22 @@ struct Human {
 }
 
 impl Json {
+    /// Serializes the Json value into `Writer` 'w'.
+    ///
+    /// Example:
+    /// ```
+    /// use std::str;
+    /// use std::io::{self};
+    /// use jsosso::Json;
+    ///
+    /// let jdoc = Json::String("hello world!".to_string());
+    /// let mut v: Vec<u8> = Vec::new();
+    /// jdoc.serialize(&mut v);
+    /// assert!(match str::from_utf8(&v) {
+    ///     Ok(s) if s == "\"hello world!\"" => true,
+    ///     _ => false,
+    /// });
+    /// ```
     pub fn serialize<W: Write> (&self, w: &mut W) -> io::Result<usize> {
         let mut h = Human {
             size: 0,

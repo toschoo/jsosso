@@ -2,6 +2,41 @@ use super::*;
 use std::str;
 use rand;
 
+/// Generates a random Json value.
+///
+/// Example:
+///
+/// ```
+/// use std::io::Cursor;
+/// use jsosso::{Json};
+/// use jsosso::parsing::*;
+/// use jsosso::arbitrary::*;
+/// use pacosso::{Stream, Opts};
+///
+/// for _ in 0 .. 10 {
+///     let original = make_arbitrary();
+///     let mut v = Vec::new();
+///
+///     assert!(match original.serialize(&mut v) {
+///         Ok(_)  => true,
+///         Err(_) => false,
+///     });
+///
+///     let mut input = Cursor::new(v);
+///     let mut s = Stream::new(Opts::default()
+///                .set_buf_size(1024)
+///                .set_buf_num(5),
+///                &mut input);
+///
+///     let mycopy = match parse(&mut s) {
+///         Ok(j) => j,
+///         Err(e) => panic!("unexpected error: {:?} at {}", e, s.position()),
+///     };
+///
+///     assert_eq!(original, mycopy);
+/// }
+/// 
+/// ```
 pub fn make_arbitrary() -> Json {
     make_value(0)
 }

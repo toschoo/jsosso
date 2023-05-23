@@ -3,12 +3,40 @@ use std::collections::HashMap;
 use std::str;
 use super::*;
 
+/// Parses the first complete Json value in stream 's'
+/// and returns it as Enum 'Json' on success and a parse error otherwise.
+/// For details on how to create and manage streams, please refer to [`pacosso`].
+///
+/// [`pacosso`]: https://github.com/toschoo/pacosso
+///
+/// Example:
+///
+/// ```
+///    use std::io::Cursor;
+///    use jsosso::{Json};
+///    use jsosso::parsing::*;
+///    use pacosso::{Stream, ParseError, Opts};
+/// 
+///    let v: Vec<u8> = "\"hello world\"".to_string().bytes().collect();
+///    let mut input = Cursor::new(v);
+///    let mut s = Stream::new(Opts::default()
+///               .set_buf_size(8)
+///               .set_buf_num(3),
+///               &mut input
+///    );
+///
+///    assert!(match parse(&mut s) {
+///        Ok(Json::String(x)) if x == "hello world" => true,
+///        Ok(v) => panic!("unexpected value: {:?}", v),
+///        Err(e) => panic!("unexpected error: {:?}", e),
+///    });
+/// ```
 pub fn parse<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
     s.skip_whitespace()?;
     jvalue(s)
 }
 
-pub fn jvalue<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
+fn jvalue<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
     /*
     let v = [jstring, jobject, jarray, jnil, jboolean, jnumber]; 
     s.choice(&v)
