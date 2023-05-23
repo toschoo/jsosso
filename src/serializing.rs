@@ -128,7 +128,9 @@ impl Json {
         }
         h.ind.pop();
         h.ind.pop();
-        self.write(w, h, b"\n]\n")
+        self.write(w, h, b"\n")?;
+        self.write_indent(w,h)?;
+        self.write(w, h, b"]\n")
     }
 
     fn write_jobject<W: Write> (&self, o: &HashMap<String, Json>, w: &mut W, h: &mut Human) -> io::Result<()> {
@@ -148,6 +150,8 @@ impl Json {
         }
         h.ind.pop();
         h.ind.pop();
-        self.write(w, h, b"\n}\n")
+        self.write(w, h, b"\n")?;
+        self.write_indent(w,h)?;
+        self.write(w, h, b"}\n")
     }
 }

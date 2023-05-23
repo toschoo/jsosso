@@ -197,7 +197,9 @@ fn keyvalues<R: Read>(s: &mut Stream<R>) -> ParseResult<HashMap<String, Json>> {
         let (k, v) = keyvalue(s)?;
         let _ = match m.insert(k.clone(), v) {
             Some(_) => return Err(ParseError::Failed(format!(
-                        "duplicated key '{}' in object", k.clone()))),
+                          "duplicated key '{}' in object", k.clone()),
+                          s.position())
+                       ),
             _ => true,
         };
         s.skip_whitespace()?;
@@ -243,11 +245,11 @@ fn plain_string<R: Read>(s: &mut Stream<R>) -> ParseResult<String> {
 
     match str::from_utf8(&v) {
       Ok(x) => return Ok(x.to_string()),
-      Err(_) => return Err(ParseError::Failed("unicode error".to_string())),
+      Err(_) => return Err(ParseError::Failed("unicode error".to_string(), s.position())),
     }
 }
 
-fn convert_ascii(n: u8) -> ParseResult<u16> {
+fn convert_ascii<R: Read>(s: &mut Stream<R>, n: u8) -> ParseResult<u16> {
     match n {
         b'0' => return Ok(0),
         b'1' => return Ok(1),
@@ -265,7 +267,7 @@ fn convert_ascii(n: u8) -> ParseResult<u16> {
         b'd' => return Ok(13),
         b'e' => return Ok(14),
         b'f' => return Ok(15),
-        _ => return Err(ParseError::Failed(format!("hexadecimal expected, have: {}", n))),
+        _ => return Err(ParseError::Failed(format!("hexadecimal expected, have: {}", n), s.position())),
     }
 }
 
@@ -275,7 +277,7 @@ fn utf16bytes<R: Read>(s: &mut Stream<R>) -> ParseResult<u16> {
     let mut x = 3u32;
     let h = 16u16;
     for b in bs {
-        let i = convert_ascii(b.to_ascii_lowercase())?;
+        let i = convert_ascii(s, b.to_ascii_lowercase())?;
         u += i * h.pow(x);
         if x > 0 {
             x -= 1;
@@ -329,7 +331,9 @@ fn codepoint<R: Read>(s: &mut Stream<R>, v: &mut Vec<u8>) -> ParseResult<()> {
                 push_replacement(v);
                 return Ok(());
             },
-            _ => return Err(ParseError::Failed("unexpected result".to_string())),
+            _ => return Err(ParseError::Failed("unexpected result".to_string(),
+                                               s.position())
+                 ),
         }
     }
 
@@ -349,7 +353,9 @@ fn escape<R: Read>(s: &mut Stream<R>, v: &mut Vec<u8>) -> ParseResult<()> {
           b't'  => v.push(b'\t'),
           b'u'  => codepoint(s, v)?,
           _     => return Err(ParseError::Failed(format!(
-                       "unknown escape sequence {}", c))),
+                       "unknown escape sequence {}", c),
+                        s.position()
+                   )),
        }
        Ok(())
 }
