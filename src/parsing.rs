@@ -39,7 +39,7 @@ pub fn parse<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
 fn jvalue<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
     /* This looks nice, but it is less efficient and would force us
        to use a buffer that basically is big enough to contain the whole jvalue.
- 
+
     let v = [jstring, jobject, jarray, jnil, jboolean, jnumber]; 
     s.choice(&v)
     */
@@ -83,59 +83,55 @@ fn jboolean<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
 // jnumber is extremely inefficient. Definitely needs review.
 fn jnumber<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
     let mut zero = false;
-    let mut exp  = false;
     let mut v = Vec::new();
 
-    match s.byte(b'-') {
-        Ok(()) => v.push(b'-'),
-        Err(e) => {
-            if !e.is_expected_token() {
-                return Err(e);
-            }
-        },
+    // sign: eof is an error
+    let c = s.peek_byte()?;
+    if c == b'-' {
+        s.byte(b'-')?;
+        v.push(b'-');
     }
 
-    match s.byte(b'0') {
-        Ok(()) => {
-            zero = true;
-            v.push(b'0');
-        },
-        Err(e) => {
-            if !e.is_expected_token() {
-                return Err(e);
-            }
-        },
+    // leading 0: eof is an error here
+    let c = s.peek_byte()?;
+    if c == b'0' {
+        zero = true;
+        s.byte(b'0')?;
+        v.push(b'0');
     }
 
+    // digits without leading 0: eof is an error here
     if !zero {
         let ds = s.digits()?;
-        for d in ds {
-            v.push(d);
-        }
+        v.extend_from_slice(&ds);
     }
 
-    match s.byte(b'.') {
-        Ok(()) => jfrac(s, &mut v)?,
-        Err(e) => {
-            if !e.is_expected_token() && !e.is_eof() {
-                return Err(e);
-            }
-        },
+    // decimal point: eof is not an error
+    let c = match s.peek_byte() {
+        Ok(c) => c,
+        Err(e) if e.is_eof() => b' ',
+        Err(e) => return Err(e),
+    };
+    if c == b'.' {
+        jfrac(s, &mut v)?;
     }
 
-    match s.one_of_bytes(&[b'e', b'E']) {
-        Ok(()) => exp = true,
-        Err(e) => {
-            if !e.is_expected_token() && !e.is_eof() {
-                return Err(e);
-            }
-        },
-    }
+    // exponent: eof is not an error
+    let c = match s.peek_byte() {
+        Ok(c) => c,
+        Err(e) if e.is_eof() => b' ',
+        Err(e) => return Err(e),
+    };
 
-    if exp {
+    if c == b'e' {
+        s.byte(b'e')?;
+        jexp(s, &mut v)?;
+    } else if c == b'E' {
+        s.byte(b'E')?;
         jexp(s, &mut v)?;
     }
 
+    // well, that's really lazy
     let x = match str::from_utf8(&v) {
         Ok(x) => x,
         Err(e) => return fail(s, format!("internal error: {:?}", e)),
@@ -148,11 +144,10 @@ fn jnumber<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
 }
 
 fn jfrac<R: Read>(s: &mut Stream<R>, v: &mut Vec<u8>) -> ParseResult<()> {
+     s.byte(b'.')?;
      v.push(b'.');
      let ds = s.digits()?; 
-     for d in ds {
-         v.push(d);
-     }
+     v.extend_from_slice(&ds);
      Ok(())
 }
 
@@ -166,9 +161,7 @@ fn jexp<R: Read>(s: &mut Stream<R>, v: &mut Vec<u8>) -> ParseResult<()> {
          s.byte(b'+')?;
      }
      let ds = s.digits()?; 
-     for d in ds {
-         v.push(d);
-     }
+     v.extend_from_slice(&ds);
      Ok(())
 }
 

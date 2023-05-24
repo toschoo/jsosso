@@ -3,7 +3,7 @@
 Jsosso is a simple Json parser.
 It provides a Json datatype and
 
-- a serializer serialiser to transform Json data into byte vectors,
+- a serializer to transform Json data into byte vectors,
 - a parser to read Json values from streams,
 - a random Json value generator.
 
