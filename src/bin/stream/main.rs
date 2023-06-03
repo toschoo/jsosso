@@ -76,7 +76,7 @@ fn handle_client(mut stream: TcpStream) {
     // There is another demo that shows how to do that.
     stream.set_read_timeout(Some(time::Duration::new(3, 0))).unwrap();
     let mut p = pacosso::Stream::new(Opts::default()
-                                         .set_stream()
+                                         .set_infinite_stream()
                                          .set_buf_size(8192)
                                          .set_buf_num(5),
                                          &mut stream);
