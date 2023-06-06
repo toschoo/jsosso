@@ -3,13 +3,43 @@ use std::collections::HashMap;
 use std::str;
 use super::*;
 
+/// Parses the first complete Json value in stream 's'
+/// and returns it as Enum 'Json' on success and a parse error otherwise.
+/// For details on how to create and manage streams, please refer to [`pacosso`].
+///
+/// [`pacosso`]: https://github.com/toschoo/pacosso
+///
+/// Example:
+///
+/// ```
+///    use std::io::Cursor;
+///    use jsosso::{Json};
+///    use jsosso::parsing::*;
+///    use pacosso::{Stream, ParseError, Opts};
+/// 
+///    let v: Vec<u8> = "\"hello world\"".to_string().bytes().collect();
+///    let mut input = Cursor::new(v);
+///    let mut s = Stream::new(Opts::default()
+///               .set_buf_size(8)
+///               .set_buf_num(3),
+///               &mut input
+///    );
+///
+///    assert!(match parse(&mut s) {
+///        Ok(Json::String(x)) if x == "hello world" => true,
+///        Ok(v) => panic!("unexpected value: {:?}", v),
+///        Err(e) => panic!("unexpected error: {:?}", e),
+///    });
+/// ```
 pub fn parse<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
     s.skip_whitespace()?;
     jvalue(s)
 }
 
-pub fn jvalue<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
-    /*
+fn jvalue<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
+    /* This looks nice, but it is less efficient and would force us
+       to use a buffer that basically is big enough to contain the whole jvalue.
+
     let v = [jstring, jobject, jarray, jnil, jboolean, jnumber]; 
     s.choice(&v)
     */
@@ -26,6 +56,7 @@ pub fn jvalue<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
     }
 }
 
+// A simple error generator for ParseResult<Json>
 fn fail<R: Read>(s: &mut Stream<R>, msg: String) -> ParseResult<Json> {
     s.fail(&msg, Json::Null)
 }
@@ -49,61 +80,58 @@ fn jboolean<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
     fail(s, "boolean value expected".to_string())
 }
 
+// jnumber is extremely inefficient. Definitely needs review.
 fn jnumber<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
     let mut zero = false;
-    let mut exp  = false;
     let mut v = Vec::new();
 
-    match s.byte(b'-') {
-        Ok(()) => v.push(b'-'),
-        Err(e) => {
-            if !e.is_expected_token() {
-                return Err(e);
-            }
-        },
+    // sign: eof is an error
+    let c = s.peek_byte()?;
+    if c == b'-' {
+        s.byte(b'-')?;
+        v.push(b'-');
     }
 
-    match s.byte(b'0') {
-        Ok(()) => {
-            zero = true;
-            v.push(b'0');
-        },
-        Err(e) => {
-            if !e.is_expected_token() {
-                return Err(e);
-            }
-        },
+    // leading 0: eof is an error here
+    let c = s.peek_byte()?;
+    if c == b'0' {
+        zero = true;
+        s.byte(b'0')?;
+        v.push(b'0');
     }
 
+    // digits without leading 0: eof is an error here
     if !zero {
         let ds = s.digits()?;
-        for d in ds {
-            v.push(d);
-        }
+        v.extend_from_slice(&ds);
     }
 
-    match s.byte(b'.') {
-        Ok(()) => jfrac(s, &mut v)?,
-        Err(e) => {
-            if !e.is_expected_token() && !e.is_eof() {
-                return Err(e);
-            }
-        },
+    // decimal point: eof is not an error
+    let c = match s.peek_byte() {
+        Ok(c) => c,
+        Err(e) if e.is_eof() => b' ',
+        Err(e) => return Err(e),
+    };
+    if c == b'.' {
+        jfrac(s, &mut v)?;
     }
 
-    match s.one_of_bytes(&[b'e', b'E']) {
-        Ok(()) => exp = true,
-        Err(e) => {
-            if !e.is_expected_token() && !e.is_eof() {
-                return Err(e);
-            }
-        },
-    }
+    // exponent: eof is not an error
+    let c = match s.peek_byte() {
+        Ok(c) => c,
+        Err(e) if e.is_eof() => b' ',
+        Err(e) => return Err(e),
+    };
 
-    if exp {
+    if c == b'e' {
+        s.byte(b'e')?;
+        jexp(s, &mut v)?;
+    } else if c == b'E' {
+        s.byte(b'E')?;
         jexp(s, &mut v)?;
     }
 
+    // well, that's really lazy
     let x = match str::from_utf8(&v) {
         Ok(x) => x,
         Err(e) => return fail(s, format!("internal error: {:?}", e)),
@@ -116,11 +144,10 @@ fn jnumber<R: Read>(s: &mut Stream<R>) -> ParseResult<Json> {
 }
 
 fn jfrac<R: Read>(s: &mut Stream<R>, v: &mut Vec<u8>) -> ParseResult<()> {
+     s.byte(b'.')?;
      v.push(b'.');
      let ds = s.digits()?; 
-     for d in ds {
-         v.push(d);
-     }
+     v.extend_from_slice(&ds);
      Ok(())
 }
 
@@ -134,9 +161,7 @@ fn jexp<R: Read>(s: &mut Stream<R>, v: &mut Vec<u8>) -> ParseResult<()> {
          s.byte(b'+')?;
      }
      let ds = s.digits()?; 
-     for d in ds {
-         v.push(d);
-     }
+     v.extend_from_slice(&ds);
      Ok(())
 }
 
@@ -197,7 +222,9 @@ fn keyvalues<R: Read>(s: &mut Stream<R>) -> ParseResult<HashMap<String, Json>> {
         let (k, v) = keyvalue(s)?;
         let _ = match m.insert(k.clone(), v) {
             Some(_) => return Err(ParseError::Failed(format!(
-                        "duplicated key '{}' in object", k.clone()))),
+                          "duplicated key '{}' in object", k.clone()),
+                          s.position())
+                       ),
             _ => true,
         };
         s.skip_whitespace()?;
@@ -243,11 +270,11 @@ fn plain_string<R: Read>(s: &mut Stream<R>) -> ParseResult<String> {
 
     match str::from_utf8(&v) {
       Ok(x) => return Ok(x.to_string()),
-      Err(_) => return Err(ParseError::Failed("unicode error".to_string())),
+      Err(_) => return Err(ParseError::Failed("unicode error".to_string(), s.position())),
     }
 }
 
-fn convert_ascii(n: u8) -> ParseResult<u16> {
+fn convert_ascii<R: Read>(s: &mut Stream<R>, n: u8) -> ParseResult<u16> {
     match n {
         b'0' => return Ok(0),
         b'1' => return Ok(1),
@@ -265,7 +292,7 @@ fn convert_ascii(n: u8) -> ParseResult<u16> {
         b'd' => return Ok(13),
         b'e' => return Ok(14),
         b'f' => return Ok(15),
-        _ => return Err(ParseError::Failed(format!("hexadecimal expected, have: {}", n))),
+        _ => return Err(ParseError::Failed(format!("hexadecimal expected, have: {}", n), s.position())),
     }
 }
 
@@ -275,7 +302,7 @@ fn utf16bytes<R: Read>(s: &mut Stream<R>) -> ParseResult<u16> {
     let mut x = 3u32;
     let h = 16u16;
     for b in bs {
-        let i = convert_ascii(b.to_ascii_lowercase())?;
+        let i = convert_ascii(s, b.to_ascii_lowercase())?;
         u += i * h.pow(x);
         if x > 0 {
             x -= 1;
@@ -329,7 +356,9 @@ fn codepoint<R: Read>(s: &mut Stream<R>, v: &mut Vec<u8>) -> ParseResult<()> {
                 push_replacement(v);
                 return Ok(());
             },
-            _ => return Err(ParseError::Failed("unexpected result".to_string())),
+            _ => return Err(ParseError::Failed("unexpected result".to_string(),
+                                               s.position())
+                 ),
         }
     }
 
@@ -349,8 +378,9 @@ fn escape<R: Read>(s: &mut Stream<R>, v: &mut Vec<u8>) -> ParseResult<()> {
           b't'  => v.push(b'\t'),
           b'u'  => codepoint(s, v)?,
           _     => return Err(ParseError::Failed(format!(
-                       "unknown escape sequence {}", c))),
+                       "unknown escape sequence {}", c),
+                        s.position()
+                   )),
        }
        Ok(())
 }
-

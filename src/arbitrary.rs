@@ -2,11 +2,52 @@ use super::*;
 use std::str;
 use rand;
 
+/// Generates a random Json value.
+///
+/// Example:
+///
+/// ```
+/// use std::io::Cursor;
+/// use jsosso::{Json};
+/// use jsosso::parsing::*;
+/// use jsosso::arbitrary::*;
+/// use pacosso::{Stream, Opts};
+///
+/// for _ in 0 .. 10 {
+///     let original = make_arbitrary();
+///     let mut v = Vec::new();
+///
+///     assert!(match original.serialize(&mut v) {
+///         Ok(_)  => true,
+///         Err(_) => false,
+///     });
+///
+///     let mut input = Cursor::new(v);
+///     let mut s = Stream::new(Opts::default()
+///                .set_buf_size(1024)
+///                .set_buf_num(5),
+///                &mut input);
+///
+///     let mycopy = match parse(&mut s) {
+///         Ok(j) => j,
+///         Err(e) => panic!("unexpected error: {:?} at {}", e, s.position()),
+///     };
+///
+///     assert_eq!(original, mycopy);
+/// }
+/// 
+/// ```
 pub fn make_arbitrary() -> Json {
-    make_value(0)
+    make_value(0, 0, 0)
 }
 
-fn make_value(level: usize) -> Json {
+/// Generates a random Json value with at most 'n' elements.
+/// For n = 0, the function behaves exactly like `make_arbitrary()`.
+pub fn make_n_arbitrary(n: usize) -> Json {
+    make_value(0, n, 0)
+}
+
+fn make_value(level: usize, max: usize, have: usize) -> Json {
 
     let x = rand::random::<u8>()%100;
 
@@ -27,10 +68,10 @@ fn make_value(level: usize) -> Json {
     }
 
     if x < 75 {
-       return make_array(level);
+       return make_array(level, max, have);
     }
 
-    make_object(level)
+    make_object(level, max, have)
 }
 
 fn make_boolean() -> Json {
@@ -68,34 +109,46 @@ fn random_string() -> String {
     s.to_string()
 }
 
-fn make_array(level: usize) -> Json {
+fn make_array(level: usize, max: usize, have: usize) -> Json {
     if level > 2 {
         return Json::Null;
     }
+
+    let mut n = have;
 
     let x = rand::random::<usize>()%100;
 
     let mut v = Vec::with_capacity(x);
     for _ in 0 .. x {
-        let j = make_value(level+1);
+        if n >= max {
+            break;
+        }
+        let j = make_value(level+1, max, n);
         v.push(j); 
+        n += 1;
     }
     
     Json::Array(v)
 }
 
-fn make_object(level: usize) -> Json {
+fn make_object(level: usize, max: usize, have: usize) -> Json {
     if level > 2 {
         return Json::Null;
     }
+
+    let mut n = have;
 
     let x = rand::random::<u8>()%25;
 
     let mut m = HashMap::new();
     for _ in 0 .. x {
+        if n >= max {
+            break;
+        }
         let s = random_string();
-        let j = make_value(level+1);
+        let j = make_value(level+1, max, n);
         let _ = m.insert(s, j);
+        n += 1;
     }
 
     Json::Object(Box::new(m))
