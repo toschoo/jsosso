@@ -12,7 +12,47 @@ fn main() {
     let mut d: f64 = 0.0;
     let mut sz = 0;
 
+
+    let mut input = io::Cursor::new("hello world".as_bytes().to_vec());
+
+    for _ in 0 .. 1000 {
+        let t = Instant::now();
+        Stream::new(Opts::default().set_buf_size(8), &mut input).succeed().unwrap();
+        d += t.elapsed().as_secs_f64() * US;
+    }
+    d /= 1000.0;
+    println!("Duration stream (buf size:    8): {:05}us", d as i64);
+
+    d = 0.0;
+    for _ in 0 .. 1000 {
+        let t = Instant::now();
+        Stream::new(Opts::default().set_buf_size(128), &mut input).succeed().unwrap();
+        d += t.elapsed().as_secs_f64() * US;
+    }
+    d /= 1000.0;
+    println!("Duration stream (buf size:  128): {:05}us", d as i64);
+
+    d = 0.0;
+    for _ in 0 .. 1000 {
+        let t = Instant::now();
+        Stream::new(Opts::default().set_buf_size(1024), &mut input).succeed().unwrap();
+        d += t.elapsed().as_secs_f64() * US;
+    }
+    d /= 1000.0;
+    println!("Duration stream (buf size: 1024): {:05}us", d as i64);
+
+    d = 0.0;
+    for _ in 0 .. 1000 {
+        let t = Instant::now();
+        Stream::new(Opts::default(), &mut input).succeed().unwrap();
+        d += t.elapsed().as_secs_f64() * US;
+    }
+    d /= 1000.0;
+    println!("Duration stream (buf size: 8192): {:05}us", d as i64);
+
+    println!("");
     // oeis
+    d = 0.0;
     for _ in 0 .. 1000 {
         let (x, l) = run_with_file("rsc/test/oeis.json".into());
         d += x;
