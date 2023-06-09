@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 pacosso = "0.2"
+# pacosso = { path = "../pacosso", version = "0" }
 rand = "0.8.5"

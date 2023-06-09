@@ -1,8 +1,10 @@
 use std::net::{TcpListener, TcpStream};
-use std::io;
+use std::io::{self, Read, Write, ErrorKind};
 use std::str;
 use std::time;
+use std::thread;
 use pacosso::{Opts, ParseResult};
+use pacosso::error::{ParseError};
 use jsosso::parsing::{parse};
 use jsosso::Json;
 
@@ -41,9 +43,51 @@ impl Default for Command {
 fn handle_client(mut stream: TcpStream) {
     println!("connected!");
 
+    stream.set_read_timeout(Some(time::Duration::new(3, 0))).unwrap();
+
+    let mut bs = vec![];
+    loop {
+        bs = {
+            let input = bs.chain(&mut stream);
+            match handle_input(input) {
+                Ok(v) => v,
+                Err(ParseError::IOError(e)) if e.kind() == ErrorKind::WouldBlock => {
+                     eprintln!("would block on read: {:?}", e);
+                     return;
+                },
+                Err(e) => {
+                    eprintln!("error on parse: {:?}", e);
+                    return;
+                },
+            }
+        }; // drop input
+
+        match stream.write(&"OK".as_bytes().to_vec()) {
+            Ok(2) => {
+                stream.flush().expect("flush failed");
+                continue;
+            },
+            Ok(n) => {
+                eprintln!("error: cannot write 2 bytes: {}", n);
+                break;
+            },
+            Err(e) if e.kind() == ErrorKind::Interrupted => break,
+            Err(e) if e.kind() == ErrorKind::WouldBlock  => {
+                eprintln!("would block on write: {:?}", e);
+                thread::sleep(time::Duration::new(0, 1000));
+            },
+            Err(e) => {
+                eprintln!("error on write: {:?}", e);
+                break;
+            },
+        }
+    }
+}
+
+fn handle_input<R: Read>(mut stream: R) -> ParseResult<Vec<u8>> {
     // this parses a command of the form:
     // <command>\n\n<json>
-    let parse_command = |s: &mut pacosso::Stream<TcpStream>| -> ParseResult<Command> {
+    let parse_command = |s: &mut pacosso::Stream<R>| -> ParseResult<Command> {
         let mut v = Vec::new();
 
         s.skip_whitespace()?;
@@ -73,28 +117,12 @@ fn handle_client(mut stream: TcpStream) {
         })
     };
 
-    // a parser acting on a tcp stream.
-    // Note that, this way, we cannot use the socket
-    // for writing because that would imply another mutual borrow.
-    // There is another demo that shows how to do that.
-    stream.set_read_timeout(Some(time::Duration::new(3, 0))).unwrap();
     let mut p = pacosso::Stream::new(Opts::default()
-                                         .set_infinite_stream()
-                                         .set_buf_size(8192)
-                                         .set_buf_num(5),
+                                         .set_infinite_stream(),
                                          &mut stream);
-    loop {
-        match parse_command(&mut p) {
-            Err(e) => {
-                eprintln!("error: {:?}", e);
-                break;
-            },
-            Ok(cmd) => {
-                println!("handling command");
-                handle_command(&cmd);
-            },
-        }
-    }
+    let cmd = parse_command(&mut p)?;
+    handle_command(&cmd);
+    p.drain()
 }
 
 fn handle_command(cmd: &Command) {
