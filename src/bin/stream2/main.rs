@@ -1,5 +1,6 @@
 use std::net::{TcpListener, TcpStream};
 use std::io::{self, Read, Write, ErrorKind};
+use std::env;
 use std::str;
 use std::time;
 use std::thread;
@@ -9,7 +10,14 @@ use jsosso::parsing::{parse};
 use jsosso::Json;
 
 fn main() {
-   let listener = match TcpListener::bind("127.0.0.1:6049") {
+   let args: Vec<String> = env::args().collect();
+   let port = if args.len() > 1 {
+       args[1].to_string()
+   } else {
+       "6049".to_string()
+   };
+
+   let listener = match TcpListener::bind(&format!("127.0.0.1:{}", port)) {
        Ok(l) => l,
        Err(e) => {
            handle_error(e);
@@ -86,7 +94,7 @@ fn handle_client(mut stream: TcpStream) {
 
 fn handle_input<R: Read>(mut stream: R) -> ParseResult<Vec<u8>> {
     // this parses a command of the form:
-    // <command>\n\n<json>
+    // <command>\n\n<json><etx>
     let parse_command = |s: &mut pacosso::Stream<R>| -> ParseResult<Command> {
         let mut v = Vec::new();
 
