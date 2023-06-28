@@ -765,3 +765,46 @@ fn test_pass_round_trip() {
         assert_eq!(original, mycopy);
     }
 }
+
+#[test]
+fn test_dsl_null() {
+    assert_eq!(
+        json!(null),
+        Json::Null
+    );
+}
+
+#[test]
+fn test_dsl_array() {
+    assert_eq!(
+        json!([
+            true, false, null, "hello", "world"
+        ]),
+        Json::Array(vec![
+            Json::Boolean(true),
+            Json::Boolean(false),
+            Json::Null,
+            Json::String("hello".to_string()),
+            Json::String("world".to_string())
+        ])
+    );
+}
+
+#[test]
+fn test_dsl_object() {
+    assert_eq!(
+        json!({
+            "Id": 1,
+            "Name": "Doe",
+            "Location": [ 39.23, (-8.88) ], 
+            "registered": true
+        }),
+        Json::Object(Box::new(vec![
+            ("Id".to_string(), Json::Number(1.0)),
+            ("Name".to_string(), Json::String("Doe".to_string())),
+            ("Location".to_string(), Json::Array(vec![ Json::Number(39.23), Json::Number(-8.88) ])), 
+            ("registered".to_string(), Json::Boolean(true)),
+            ].into_iter().collect()
+        ))
+    );
+}
