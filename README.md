@@ -5,6 +5,7 @@ It provides a Json datatype and
 
 - a serializer to transform Json data into byte vectors,
 - a parser to read Json values from streams,
+- a macro providing a domain-specific language to easily build JSON structures in Rust,
 - a random Json value generator.
 
 The main purpose of Jsosso is to serve as a demonstrator for [pacosso].
