@@ -74,6 +74,7 @@ pub mod serializing;
 /// Implements the Json parser.
 pub mod parsing;
 
+/// Implements and embedded Json representation language. 
 #[macro_use] mod dsl;
 
 /// Implements the random Json value generator. 
